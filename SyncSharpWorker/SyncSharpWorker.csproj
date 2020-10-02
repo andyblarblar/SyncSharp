@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <UserSecretsId>dotnet-SyncSharpWorker-F3D33A8A-2EB3-4800-9350-426FB015422C</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.0-rc.1.20451.14" />
+    <PackageReference Include="protobuf-net" Version="3.0.29" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SyncSharp.Common\SyncSharp.Common.csproj" />
+  </ItemGroup>
+</Project>
