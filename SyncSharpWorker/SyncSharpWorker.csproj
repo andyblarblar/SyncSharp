@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
     <UserSecretsId>dotnet-SyncSharpWorker-F3D33A8A-2EB3-4800-9350-426FB015422C</UserSecretsId>
+    <LangVersion>9</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>

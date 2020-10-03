@@ -50,11 +50,11 @@ namespace SyncSharpWorker
                 //The program should now reenter the waiting loop in the main thread
             };
 
-            pipeServer = new NamedPipeServerStream("syncsharp", PipeDirection.In)
-            {
-                ReadMode = PipeTransmissionMode.Message
-            };
+            _logger.LogInformation("start");
 
+            pipeServer = new NamedPipeServerStream("syncsharp", PipeDirection.In,
+                1, PipeTransmissionMode.Message);
+          
             cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
             config = GetConfig();
@@ -70,7 +70,18 @@ namespace SyncSharpWorker
                     await pipeServer.ReadAsync(buffer, cancellationToken);
                     var newConfig = Serializer.Deserialize<Config>(buffer);
 
-                    config = newConfig;//TODO currently overwrites any LastSynced
+                    //Migrate in memory sync times to the new config so we don't lose them 
+                    foreach (var path in newConfig.Paths)
+                    {
+                        var match = config.Paths.Find(f => f.Path == path.Path);
+
+                        if (match is not null)
+                        {
+                            path.LastSynced = match.LastSynced;
+                        }
+                    }
+
+                    config = newConfig;
 
                     OnConfigChanged();
                     buffer.Span.Clear();
@@ -95,10 +106,12 @@ namespace SyncSharpWorker
                 //Wait time between syncs
                 lock (_monitorLock)
                 {
+                    _logger.LogInformation($"entering sleep for {config.CheckInterval}");
                     Monitor.Wait(_monitorLock, config.CheckInterval);
                 }
 
-                await FileSyncUtility.Sync(config, cts.Token);
+                _logger.LogInformation($"woke, starting sync");
+                await FileSyncUtility.Sync(config, cts.Token,_logger);
             }
         }
 
@@ -108,8 +121,8 @@ namespace SyncSharpWorker
             
             return new Config
             {
-                CheckInterval = TimeSpan.FromHours(2),
-                Paths = new List<FileProfile>{new FileProfile{LastSynced = DateTime.MinValue, Path = "C:\\Users\\Andyblarblar\\Downloads\\mario.exe"} },
+                CheckInterval = TimeSpan.FromMinutes(.5),
+                Paths = new List<FileProfile>{new FileProfile{LastSynced = DateTime.MinValue, Path = "Y:\\Documents\\School" } },
                 SavePath = "C:\\Users\\Andyblarblar\\Downloads\\Backu"
             };
 
