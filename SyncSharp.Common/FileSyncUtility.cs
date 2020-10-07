@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using ProtoBuf;
 using SyncSharp.Common.model;
 
 namespace SyncSharp.Common
@@ -23,6 +24,12 @@ namespace SyncSharp.Common
             {
                 Directory.CreateDirectory(config.SavePath);
                 logger.LogInformation($"created directory {config.SavePath}");
+            }
+
+            //This prevents saving of the file if application has never been used.
+            if (config?.Paths is null)
+            {
+                return;
             }
 
             foreach (var path in config.Paths)
@@ -60,11 +67,12 @@ namespace SyncSharp.Common
                 }
                 catch(OperationCanceledException)//File is already deleted by here, so just return.
                 {
+                    SaveConfig(config);
                     return;
                 }
             }
 
-            //TODO save config in file 
+            SaveConfig(config);
         }
 
         private static async Task SyncFile(Config config, CancellationToken token, FileProfile path, ILogger logger,
@@ -79,17 +87,20 @@ namespace SyncSharp.Common
                 await using var sourceStream = File.OpenRead(path.Path);
                 await using var destinationStream = File.Create(Path.Combine(configSavePath, fileInfo.Name));
 
-                var res = sourceStream.CopyToAsync(destinationStream, 81920, token);
-                await res;
-
-                //Delete the bad file if copy is cancelled
-                if (res.Status == TaskStatus.Canceled)
+                try
                 {
-                    await destinationStream.DisposeAsync();//free up file handle
-                    await sourceStream.DisposeAsync();
-                    File.Delete(Path.Combine(configSavePath, fileInfo.Name));
+                    await sourceStream.CopyToAsync(destinationStream, 81920, token);
                     token.ThrowIfCancellationRequested();
                 }
+                catch (OperationCanceledException)//Delete file if cancelled
+                {
+                    logger.LogInformation($"deleteing file {Path.Combine(configSavePath, fileInfo.Name)}");
+                    await destinationStream.DisposeAsync();//free up file handles
+                    await sourceStream.DisposeAsync();
+                    File.Delete(Path.Combine(configSavePath, fileInfo.Name));
+                    throw;
+                }
+
             }
             else
             {
@@ -121,6 +132,38 @@ namespace SyncSharp.Common
 
             return resultDict;
         }
+
+        /// <summary>
+        /// Saves the passed config into ".\conf.bin" in protobuf form
+        /// </summary>
+        public static void SaveConfig(Config conf)
+        {
+            using var stream = File.Create($".{Path.DirectorySeparatorChar}conf.bin");
+
+            Serializer.Serialize(stream, conf);
+        }
+
+        /// <summary>
+        /// Loads config from ".\conf.bin"
+        /// </summary>
+        public static Config LoadConfig()
+        {
+            try
+            {
+                using var stream = File.OpenRead($".{Path.DirectorySeparatorChar}conf.bin");
+                return Serializer.Deserialize<Config>(stream);
+            }
+            catch (Exception)//File doesn't exist
+            {
+                //Default
+                return new Config{
+                    CheckInterval = TimeSpan.FromMinutes(.5),
+                    Paths = new List<FileProfile> { new FileProfile { LastSynced = DateTime.MinValue, Path = "Y:\\Documents\\School" } },
+                    SavePath = "C:\\Users\\Andyblarblar\\Downloads\\Backu"
+                };
+            }
+        }
+
 
     }
 }
