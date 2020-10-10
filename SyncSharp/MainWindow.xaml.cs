@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO.Pipes;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,6 +13,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using ProtoBuf;
+using SyncSharp.Common.model;
 
 namespace SyncSharp
 {
@@ -23,6 +26,22 @@ namespace SyncSharp
         public MainWindow()
         {
             InitializeComponent();
+            client = new NamedPipeClientStream(".","syncsharp",PipeDirection.Out);
+            client.Connect();
+        }
+
+        private NamedPipeClientStream client;
+
+        private void ButtonClickSendConfig(object sender, RoutedEventArgs e)
+        {
+            var config = new Config {
+                CheckInterval = TimeSpan.FromMinutes(1),
+                Paths = new List<FileProfile> { new FileProfile { LastSynced = DateTime.MinValue, Path = "Y:\\Documents\\School" } },
+                SavePath = "C:\\Users\\Andyblarblar\\Downloads\\Backu"
+            };
+
+            Serializer.Serialize(client, config);
+
         }
     }
 }

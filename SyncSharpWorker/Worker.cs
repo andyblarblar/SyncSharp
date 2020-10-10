@@ -49,9 +49,14 @@ namespace SyncSharpWorker
                 await _pipeServer.WaitForConnectionAsync(cancellationToken);
                 Memory<byte> buffer = new byte[1080];
                 
+                _logger.LogInformation("Pipe Connected");
+
                 while (! cancellationToken.IsCancellationRequested)
                 { 
                     await _pipeServer.ReadAsync(buffer, cancellationToken);
+
+                    _logger.LogInformation("Finished reading from pipe");
+
                     var newConfig = Serializer.Deserialize<Config>(buffer);
 
                     //Safely apply the new config

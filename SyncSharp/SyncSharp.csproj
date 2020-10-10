@@ -10,4 +10,8 @@
     <Folder Include="impl\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\SyncSharp.Common\SyncSharp.Common.csproj" />
+  </ItemGroup>
+
 </Project>
