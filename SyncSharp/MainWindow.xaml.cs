@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.IO.Pipes;
 using System.Linq;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -27,21 +30,31 @@ namespace SyncSharp
         {
             InitializeComponent();
             client = new NamedPipeClientStream(".","syncsharp",PipeDirection.Out);
-            client.Connect();
         }
 
         private NamedPipeClientStream client;
 
         private void ButtonClickSendConfig(object sender, RoutedEventArgs e)
         {
+            if (!client.IsConnected)
+            {
+                client.Connect();
+            }
+
             var config = new Config {
                 CheckInterval = TimeSpan.FromMinutes(1),
                 Paths = new List<FileProfile> { new FileProfile { LastSynced = DateTime.MinValue, Path = "Y:\\Documents\\School" } },
                 SavePath = "C:\\Users\\Andyblarblar\\Downloads\\Backu"
             };
 
-            Serializer.Serialize(client, config);
+            using var mem = new MemoryStream();
 
+            Serializer.Serialize(mem, config);
+
+            var buffer = mem.ToArray();
+
+            client.Write(buffer);
         }
+
     }
 }

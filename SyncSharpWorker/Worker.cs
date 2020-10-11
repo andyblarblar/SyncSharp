@@ -2,12 +2,15 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.IO.Pipes;
 using System.Linq;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Security.AccessControl;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
+using Microsoft.Win32.SafeHandles;
 using ProtoBuf;
 using SyncSharp.Common;
 using SyncSharp.Common.model;
@@ -43,30 +46,6 @@ namespace SyncSharpWorker
             
             _config = GetConfig();
 
-            //Start server thread
-            Task.Run((async () =>
-            {
-                await _pipeServer.WaitForConnectionAsync(cancellationToken);
-                Memory<byte> buffer = new byte[1080];
-                
-                _logger.LogInformation("Pipe Connected");
-
-                while (! cancellationToken.IsCancellationRequested)
-                { 
-                    await _pipeServer.ReadAsync(buffer, cancellationToken);
-
-                    _logger.LogInformation("Finished reading from pipe");
-
-                    var newConfig = Serializer.Deserialize<Config>(buffer);
-
-                    //Safely apply the new config
-                    SetNewConfig(newConfig);
-
-                    buffer.Span.Clear();
-                }
-
-            }), cancellationToken);
-
             return base.StartAsync(cancellationToken);
         }
 
@@ -80,6 +59,41 @@ namespace SyncSharpWorker
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            //Wake main thread if cancelled
+            stoppingToken.Register(() =>
+            {
+                lock (_waitIntervalLock)
+                {
+                    Monitor.Pulse(_waitIntervalLock);
+                }
+            });
+
+            //Start server thread
+            _ = Task.Run((async () =>
+              {
+                  await _pipeServer.WaitForConnectionAsync(stoppingToken);
+                  Memory<byte> buffer = new byte[1080];//TODO may overflow, dynamic expand?
+
+                  _logger.LogInformation("Pipe Connected");
+
+                  while (!stoppingToken.IsCancellationRequested)
+                  {
+                      var task = _pipeServer.ReadAsync(buffer, stoppingToken);
+                      await task;
+
+                      _logger.LogInformation($"Finished reading {task.Result} bytes from pipe");
+
+                      //Slice to ignore 0ed bytes, WILL NOT deserialize without slicing 
+                      var newConfig = Serializer.Deserialize<Config>(buffer.Slice(0,task.Result));
+
+                      //Safely apply the new config
+                      SetNewConfig(newConfig);
+
+                      buffer.Span.Clear();
+                  }
+
+              }), stoppingToken);
+
             while (!stoppingToken.IsCancellationRequested)
             {
                 //Wait time between syncs
