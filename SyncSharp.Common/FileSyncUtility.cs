@@ -23,7 +23,7 @@ namespace SyncSharp.Common
             if (!Directory.Exists(config.SavePath))
             {
                 Directory.CreateDirectory(config.SavePath);
-                logger.LogInformation($"created directory {config.SavePath}");
+                logger.LogDebug($"created directory {config.SavePath}");
             }
 
             //This prevents saving of the file if application has never been used.
@@ -83,7 +83,7 @@ namespace SyncSharp.Common
             //needs to be synced
             if (fileInfo.LastWriteTime - path.LastSynced > config.CheckInterval)//TODO this timing is off
             {
-                logger.LogInformation($"Syncing {path.Path}");
+                logger.LogDebug($"Syncing {path.Path}");
                 await using var sourceStream = File.OpenRead(path.Path);
                 await using var destinationStream = File.Create(Path.Combine(configSavePath, fileInfo.Name));
 
@@ -94,7 +94,7 @@ namespace SyncSharp.Common
                 }
                 catch (OperationCanceledException)//Delete file if cancelled
                 {
-                    logger.LogInformation($"deleteing file {Path.Combine(configSavePath, fileInfo.Name)}");
+                    logger.LogDebug($"deleteing file {Path.Combine(configSavePath, fileInfo.Name)}");
                     await destinationStream.DisposeAsync();//free up file handles
                     await sourceStream.DisposeAsync();
                     File.Delete(Path.Combine(configSavePath, fileInfo.Name));
@@ -104,7 +104,7 @@ namespace SyncSharp.Common
             }
             else
             {
-                logger.LogInformation($"Skipping {path.Path}");
+                logger.LogDebug($"Skipping {path.Path}");
             }
         }
 

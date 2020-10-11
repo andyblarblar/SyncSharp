@@ -42,9 +42,9 @@ namespace SyncSharp
             }
 
             var config = new Config {
-                CheckInterval = TimeSpan.FromMinutes(1),
-                Paths = new List<FileProfile> { new FileProfile { LastSynced = DateTime.MinValue, Path = "Y:\\Documents\\School" } },
-                SavePath = "C:\\Users\\Andyblarblar\\Downloads\\Backu"
+                CheckInterval = TimeSpan.FromMinutes(.2),
+                Paths = new List<FileProfile> { new FileProfile { LastSynced = DateTime.MinValue, Path = "D:\\music\\Donkey Kong Country Tropical Freeze Complete Soundtrack" } },
+                SavePath = "C:\\Users\\Andyblarblar\\Downloads\\Backup"
             };
 
             using var mem = new MemoryStream();

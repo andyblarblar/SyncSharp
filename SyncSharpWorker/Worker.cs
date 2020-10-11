@@ -39,7 +39,7 @@ namespace SyncSharpWorker
 
         public override Task StartAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("start");
+            _logger.LogDebug("start");
 
             _pipeServer = new NamedPipeServerStream("syncsharp", PipeDirection.In,
                 1);
@@ -74,14 +74,14 @@ namespace SyncSharpWorker
                   await _pipeServer.WaitForConnectionAsync(stoppingToken);
                   Memory<byte> buffer = new byte[1080];//TODO may overflow, dynamic expand?
 
-                  _logger.LogInformation("Pipe Connected");
+                  _logger.LogDebug("Pipe Connected");
 
                   while (!stoppingToken.IsCancellationRequested)
                   {
                       var task = _pipeServer.ReadAsync(buffer, stoppingToken);
                       await task;
 
-                      _logger.LogInformation($"Finished reading {task.Result} bytes from pipe");
+                      _logger.LogDebug($"Finished reading {task.Result} bytes from pipe");
 
                       //Slice to ignore 0ed bytes, WILL NOT deserialize without slicing 
                       var newConfig = Serializer.Deserialize<Config>(buffer.Slice(0,task.Result));
@@ -99,12 +99,12 @@ namespace SyncSharpWorker
                 //Wait time between syncs
                 lock (_waitIntervalLock)
                 {
-                    _logger.LogInformation($"entering sleep for {_config.CheckInterval}");
+                    _logger.LogDebug($"entering sleep for {_config.CheckInterval}");
                     Monitor.Wait(_waitIntervalLock, _config.CheckInterval);
                 }
 
                 _syncing = true;
-                _logger.LogInformation($"woke, starting sync");
+                _logger.LogDebug($"woke, starting sync");
                 await FileSyncUtility.Sync(_config,stoppingToken,_logger);
                 _syncing = false;
 
