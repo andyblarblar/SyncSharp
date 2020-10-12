@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -59,9 +60,14 @@ namespace SyncSharp.Common
 
                         path.LastSynced = DateTime.Now;
                     }
+
                     else if (pathIsFileAndExists)
                     {
-                        await SyncFile(config, token, path, logger, config.SavePath);
+                        //Place file under its directory in the backup folder
+                        var saveDir = Path.Combine(config.SavePath, new string(Path.GetDirectoryName(path.Path).Reverse().TakeWhile(c => c != Path.DirectorySeparatorChar).Reverse().ToArray()));
+                        if (!Directory.Exists(saveDir)) Directory.CreateDirectory(saveDir);
+
+                        await SyncFile(config, token, path, logger, saveDir);
                         path.LastSynced = DateTime.Now;
                     }
                 }
@@ -75,8 +81,7 @@ namespace SyncSharp.Common
             SaveConfig(config);
         }
 
-        private static async Task SyncFile(Config config, CancellationToken token, FileProfile path, ILogger logger,
-            string configSavePath)
+        private static async Task SyncFile(Config config, CancellationToken token, FileProfile path, ILogger logger, string configSavePath)
         {
             var fileInfo = new FileInfo(path.Path);
 
@@ -155,7 +160,7 @@ namespace SyncSharp.Common
             }
             catch (Exception)//File doesn't exist
             {
-                //Default
+                //Default TODO change before release
                 return new Config{
                     CheckInterval = TimeSpan.FromMinutes(.5),
                     Paths = new List<FileProfile> { new FileProfile { LastSynced = DateTime.MinValue, Path = "Y:\\Documents\\School" } },

@@ -10,6 +10,7 @@ using System.Security.AccessControl;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
+using Microsoft.VisualBasic;
 using Microsoft.Win32.SafeHandles;
 using ProtoBuf;
 using SyncSharp.Common;
@@ -72,24 +73,43 @@ namespace SyncSharpWorker
             _ = Task.Run((async () =>
               {
                   await _pipeServer.WaitForConnectionAsync(stoppingToken);
-                  Memory<byte> buffer = new byte[1080];//TODO may overflow, dynamic expand?
+
+                  const int bufferSize = 4000;
+                  Memory<byte> buffer = new byte[bufferSize];
+                  //Use list as a dynamic 'buffer'
+                  var accList = new List<byte>();
 
                   _logger.LogDebug("Pipe Connected");
 
                   while (!stoppingToken.IsCancellationRequested)
                   {
-                      var task = _pipeServer.ReadAsync(buffer, stoppingToken);
-                      await task;
+                      //Reset Transfer size
+                      var lastByteTransferSize = 0;
 
-                      _logger.LogDebug($"Finished reading {task.Result} bytes from pipe");
+                      //Keep reading from stream until empty
+                      do
+                      {   var task = _pipeServer.ReadAsync(buffer, stoppingToken);
+                          await task;
+                          _logger.LogDebug($"Finished reading {task.Result} bytes from pipe");
+                          lastByteTransferSize = task.Result;
 
-                      //Slice to ignore 0ed bytes, WILL NOT deserialize without slicing 
-                      var newConfig = Serializer.Deserialize<Config>(buffer.Slice(0,task.Result));
+                          //Move buffer to list and clear buffer
+                          accList.AddRange(buffer.ToArray());
+                          buffer.Span.Clear();
+                      } 
+                      while (lastByteTransferSize == bufferSize);
+
+                      _logger.LogDebug($"finished reading a total of {accList.Count} bytes from pipe.");
+
+                      //Trim excess 0s from the end of buffer> WILL NOT serialize without this
+                      var newConfig = Serializer.Deserialize<Config>(accList.ToArray().AsSpan().TrimEnd((byte) 0));
 
                       //Safely apply the new config
                       SetNewConfig(newConfig);
 
+                      //Reset buffers
                       buffer.Span.Clear();
+                      accList.Clear();
                   }
 
               }), stoppingToken);

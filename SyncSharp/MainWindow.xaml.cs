@@ -16,6 +16,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Microsoft.Win32;
 using ProtoBuf;
 using SyncSharp.Common.model;
 
@@ -41,9 +42,20 @@ namespace SyncSharp
                 client.Connect();
             }
 
+            var dialog = new OpenFileDialog {Multiselect = true, CheckFileExists = true, CheckPathExists = true};
+            dialog.ShowDialog();
+
+            var paths = dialog.FileNames;
+            var confPaths = paths.Select(f => new FileProfile {LastSynced = DateTime.MinValue, Path = f}).ToList();
+
+            foreach (var path in paths)
+            {
+                Trace.WriteLine(path);
+            }
+
             var config = new Config {
-                CheckInterval = TimeSpan.FromMinutes(.2),
-                Paths = new List<FileProfile> { new FileProfile { LastSynced = DateTime.MinValue, Path = "D:\\music\\Donkey Kong Country Tropical Freeze Complete Soundtrack" } },
+                CheckInterval = TimeSpan.FromMinutes(.5),
+                Paths = confPaths,
                 SavePath = "C:\\Users\\Andyblarblar\\Downloads\\Backup"
             };
 
