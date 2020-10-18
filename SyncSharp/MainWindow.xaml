@@ -7,8 +7,20 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid>
-        <Button Content="Send new Config" HorizontalAlignment="Left" Margin="353,184,0,0" VerticalAlignment="Top" Click="ButtonClickSendConfig"/>
+        <ListView HorizontalAlignment="Center" VerticalAlignment="Center" Height="328" Width="695">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="File Path"/>
+                    <GridViewColumn Header="Last Backed up"/>
+                </GridView>
+            </ListView.View>
 
+        </ListView>
+        <TextBox x:Name="BackupIntervalInput" Margin="0,386,567,0" Text="TextBox" TextWrapping="Wrap" VerticalAlignment="Top" Height="20" HorizontalAlignment="Right" Width="120"/>
+        <Button x:Name="SendConfigBtn" Content="Send Config" Margin="0,386,488,0" HorizontalAlignment="Right" Width="74" Height="20" VerticalAlignment="Top" Click="ButtonClickSendConfig"/>
+        <Button x:Name="AddNewFilesBtn" Content="Add Paths" HorizontalAlignment="Left" Margin="50,386,0,0" VerticalAlignment="Top" Click="disconnect"/>
 
     </Grid>
+
+
 </Window>

@@ -72,46 +72,59 @@ namespace SyncSharpWorker
             //Start server thread
             _ = Task.Run((async () =>
               {
-                  await _pipeServer.WaitForConnectionAsync(stoppingToken);
-
-                  const int bufferSize = 4000;
-                  Memory<byte> buffer = new byte[bufferSize];
-                  //Use list as a dynamic 'buffer'
-                  var accList = new List<byte>();
-
-                  _logger.LogDebug("Pipe Connected");
-
-                  while (!stoppingToken.IsCancellationRequested)
+                  outer: while (!stoppingToken.IsCancellationRequested)
                   {
-                      //Reset Transfer size
-                      var lastByteTransferSize = 0;
+                      _logger.LogDebug("Waiting on connection...");
+                      await _pipeServer.WaitForConnectionAsync(stoppingToken);
 
-                      //Keep reading from stream until empty
-                      do
-                      {   var task = _pipeServer.ReadAsync(buffer, stoppingToken);
-                          await task;
-                          _logger.LogDebug($"Finished reading {task.Result} bytes from pipe");
-                          lastByteTransferSize = task.Result;
+                      const int bufferSize = 4000;
+                      Memory<byte> buffer = new byte[bufferSize];
+                      //Use list as a dynamic 'buffer'
+                      var accList = new List<byte>();
 
-                          //Move buffer to list and clear buffer
-                          accList.AddRange(buffer.ToArray());
+                      _logger.LogDebug("Pipe Connected");
+
+                      inner: while (!stoppingToken.IsCancellationRequested)
+                      {
+                          //Reset Transfer size
+                          var lastByteTransferSize = 0;
+
+                          //Keep reading from stream until empty
+                          do
+                          {
+                              var task = _pipeServer.ReadAsync(buffer, stoppingToken);
+                              await task;
+                              _logger.LogDebug($"Finished reading {task.Result} bytes from pipe");
+                              lastByteTransferSize = task.Result;
+
+                              //Move buffer to list and clear buffer
+                              accList.AddRange(buffer.ToArray());
+                              buffer.Span.Clear();
+                          } while (lastByteTransferSize == bufferSize);
+
+                          var bytesRead = accList.ToArray().AsSpan().TrimEnd((byte) 0).Length;
+
+                          _logger.LogDebug($"finished reading a total of {bytesRead} bytes from pipe.");
+
+                          //A one byte message means we should disconnect 
+                          if (bytesRead == 1)
+                          {
+                              _logger.LogDebug("Disconnect bit received, disconnecting");
+                              _pipeServer.Disconnect();
+                              goto outer;
+                          }
+
+                          //Trim excess 0s from the end of buffer> WILL NOT serialize without this
+                          var newConfig = Serializer.Deserialize<Config>(accList.ToArray().AsSpan().TrimEnd((byte) 0));
+
+                          //Safely apply the new config
+                          SetNewConfig(newConfig);
+
+                          //Reset buffers
                           buffer.Span.Clear();
-                      } 
-                      while (lastByteTransferSize == bufferSize);
-
-                      _logger.LogDebug($"finished reading a total of {accList.Count} bytes from pipe.");
-
-                      //Trim excess 0s from the end of buffer> WILL NOT serialize without this
-                      var newConfig = Serializer.Deserialize<Config>(accList.ToArray().AsSpan().TrimEnd((byte) 0));
-
-                      //Safely apply the new config
-                      SetNewConfig(newConfig);
-
-                      //Reset buffers
-                      buffer.Span.Clear();
-                      accList.Clear();
+                          accList.Clear();
+                      }
                   }
-
               }), stoppingToken);
 
             while (!stoppingToken.IsCancellationRequested)

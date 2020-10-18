@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="0.9.11" />
+    <PackageReference Include="Avalonia.Desktop" Version="0.9.11" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SyncSharp.Common\SyncSharp.Common.csproj" />
+  </ItemGroup>
+</Project>

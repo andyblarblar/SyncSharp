@@ -35,9 +35,14 @@ namespace SyncSharp
 
         private NamedPipeClientStream client;
 
+        private void disconnect(object sender, RoutedEventArgs e)
+        {
+            client.Write(new byte[] {1});
+        }
+
         private void ButtonClickSendConfig(object sender, RoutedEventArgs e)
         {
-            if (!client.IsConnected)
+            if (!client.IsConnected)//TODO doesnt actually work lol
             {
                 client.Connect();
             }
