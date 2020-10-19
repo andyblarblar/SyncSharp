@@ -23,6 +23,9 @@ namespace SyncSharp.Common
             _buffer = new MemoryStream();
         }
 
+        /// <summary>
+        /// Connects to the server if not currently connected.
+        /// </summary>
         public async Task Start(CancellationToken token = default)
         {
             if (!IsConnected)

@@ -72,6 +72,7 @@ namespace SyncSharpWorker
             //Start server thread
             _ = Task.Run((async () =>
               {
+                  //Continuously listen for new configs from the GUI 
                   outer: while (!stoppingToken.IsCancellationRequested)
                   {
                       _logger.LogDebug("Waiting on connection...");
@@ -84,7 +85,7 @@ namespace SyncSharpWorker
 
                       _logger.LogDebug("Pipe Connected");
 
-                      inner: while (!stoppingToken.IsCancellationRequested)
+                      while (!stoppingToken.IsCancellationRequested)
                       {
                           //Reset Transfer size
                           var lastByteTransferSize = 0;

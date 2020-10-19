@@ -18,6 +18,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Microsoft.Win32;
 using ProtoBuf;
+using SyncSharp.Common;
 using SyncSharp.Common.model;
 
 namespace SyncSharp
@@ -30,22 +31,20 @@ namespace SyncSharp
         public MainWindow()
         {
             InitializeComponent();
-            client = new NamedPipeClientStream(".","syncsharp",PipeDirection.Out);
+            _client = new PipeClient("syncsharp");
+            Closed += (sender, args) => Disconnect(sender,null);
         }
 
-        private NamedPipeClientStream client;
+        private readonly PipeClient _client;
 
-        private void disconnect(object sender, RoutedEventArgs e)
+        private async void Disconnect(object sender, RoutedEventArgs e)
         {
-            client.Write(new byte[] {1});
+            await _client.Disconnect();
         }
 
-        private void ButtonClickSendConfig(object sender, RoutedEventArgs e)
+        private async void ButtonClickSendConfig(object sender, RoutedEventArgs e)
         {
-            if (!client.IsConnected)//TODO doesnt actually work lol
-            {
-                client.Connect();
-            }
+            await _client.Start();
 
             var dialog = new OpenFileDialog {Multiselect = true, CheckFileExists = true, CheckPathExists = true};
             dialog.ShowDialog();
@@ -64,13 +63,7 @@ namespace SyncSharp
                 SavePath = "C:\\Users\\Andyblarblar\\Downloads\\Backup"
             };
 
-            using var mem = new MemoryStream();
-
-            Serializer.Serialize(mem, config);
-
-            var buffer = mem.ToArray();
-
-            client.Write(buffer);
+            await _client.WriteAsync(config);
         }
 
     }
