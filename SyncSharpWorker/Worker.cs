@@ -27,6 +27,8 @@ namespace SyncSharpWorker
 
         private Config _config;
 
+        private readonly string _confLocation = $".{Path.DirectorySeparatorChar}conf.bin";
+
         private readonly object _waitIntervalLock = new object();
 
         private readonly object _configChangedLock = new object();
@@ -180,7 +182,7 @@ namespace SyncSharpWorker
 
             //Swap and save new config
             _config = newConfig;
-            FileSyncUtility.SaveConfig(_config);
+            FileSyncUtility.SaveConfig(_config, _confLocation);
 
             //Begin a new sync regardless of wait time
             lock (_waitIntervalLock)
@@ -189,9 +191,9 @@ namespace SyncSharpWorker
             }
         }
 
-        private static Config GetConfig()
+        private Config GetConfig()
         {
-            return FileSyncUtility.LoadConfig();
+            return FileSyncUtility.LoadConfig(_confLocation);
         }
 
         protected virtual void Dispose(bool disposing)

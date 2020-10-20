@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -46,6 +47,7 @@ namespace SyncSharp.Common
 
                         foreach (var dir in dict.Keys)
                         {
+
                             if (!Directory.Exists(Path.Combine(config.SavePath, dir)))
                             {
                                 Directory.CreateDirectory(Path.Combine(config.SavePath, dir));
@@ -73,12 +75,12 @@ namespace SyncSharp.Common
                 }
                 catch(OperationCanceledException)//File is already deleted by here, so just return.
                 {
-                    SaveConfig(config);
+                    SaveConfig(config, $".{Path.DirectorySeparatorChar}conf.bin");
                     return;
                 }
             }
 
-            SaveConfig(config);
+            SaveConfig(config, $".{Path.DirectorySeparatorChar}conf.bin");
         }
 
         private static async Task SyncFile(Config config, CancellationToken token, FileProfile path, ILogger logger, string configSavePath)
@@ -126,8 +128,16 @@ namespace SyncSharp.Common
             {
                 foreach (var dir in subDirs)
                 {
-                    acc.Add(Path.GetRelativePath(initialPath,dir),Directory.GetFiles(dir));
-
+                    //Preserve path for root dir
+                    if (dir == initialPath)
+                    {
+                        acc.Add(new string(dir.Reverse().TakeWhile(c => c != Path.DirectorySeparatorChar).Reverse().ToArray()), Directory.GetFiles(dir));
+                    }
+                    else
+                    {
+                         acc.Add(Path.GetRelativePath(initialPath,dir),Directory.GetFiles(dir));
+                    }
+                    
                     var newSubDir = Directory.GetDirectories(dir);
                     if(newSubDir.Length > 0) Traverse(newSubDir, acc, initialPath);
                 }
@@ -139,23 +149,23 @@ namespace SyncSharp.Common
         }
 
         /// <summary>
-        /// Saves the passed config into ".\conf.bin" in protobuf form
+        /// Saves the passed config in proto-buf form.
         /// </summary>
-        public static void SaveConfig(Config conf)
+        public static void SaveConfig(Config conf,string savePath)
         {
-            using var stream = File.Create($".{Path.DirectorySeparatorChar}conf.bin");
+            using var stream = File.Create(savePath);
 
             Serializer.Serialize(stream, conf);
         }
 
         /// <summary>
-        /// Loads config from ".\conf.bin"
+        /// Loads config.
         /// </summary>
-        public static Config LoadConfig()
+        public static Config LoadConfig(string path)
         {
             try
             {
-                using var stream = File.OpenRead($".{Path.DirectorySeparatorChar}conf.bin");
+                using var stream = File.OpenRead(path);
                 return Serializer.Deserialize<Config>(stream);
             }
             catch (Exception)//File doesn't exist

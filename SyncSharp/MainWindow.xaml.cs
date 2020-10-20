@@ -17,9 +17,12 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Microsoft.Win32;
+using Ookii.Dialogs.Wpf;
 using ProtoBuf;
 using SyncSharp.Common;
 using SyncSharp.Common.model;
+using SyncSharp.viewmodels;
+using Path = System.IO.Path;
 
 namespace SyncSharp
 {
@@ -28,42 +31,113 @@ namespace SyncSharp
     /// </summary>
     public partial class MainWindow : Window
     {
-        public MainWindow()
+        public MainWindow()//TODO make gui look nice, then finalise to make it really work
         {
             InitializeComponent();
             _client = new PipeClient("syncsharp");
             Closed += (sender, args) => Disconnect(sender,null);
+            _vm = new SyncViewModel();
+
+            //Load conf from correct directory
+            #if DEBUG
+            _vm.Config = FileSyncUtility.LoadConfig(@"..\..\..\..\SyncSharpWorker\bin\Debug\net5.0\conf.bin");
+            #else
+            _vm.Config = FileSyncUtility.LoadConfig(@$"..{Path.DirectorySeparatorChar}SyncSharpWorker\conf.bin");
+            #endif
+
+            PathListView.ItemsSource = _vm.Config.Paths;
+            BackupIntervalInput.Text = _vm.Config.CheckInterval.ToString();
         }
 
         private readonly PipeClient _client;
+        private readonly SyncViewModel _vm;
 
         private async void Disconnect(object sender, RoutedEventArgs e)
         {
+            if(!_client.IsConnected) return;
             await _client.Disconnect();
+        }
+
+        private void ButtonClickAddPaths(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog { Multiselect = true, CheckFileExists = true, CheckPathExists = true };
+            dialog.ShowDialog();
+
+            var paths = dialog.FileNames;
+            var confPaths = paths.Select(f => new FileProfile {LastSynced = DateTime.MinValue, Path = f});
+
+            //avoid duplicate paths
+            _vm.Config.Paths.AddRange(confPaths.Where(f => !_vm.Config.Paths.Contains(f)));
+
+            RefreshListBinding();
         }
 
         private async void ButtonClickSendConfig(object sender, RoutedEventArgs e)
         {
-            await _client.Start();
-
-            var dialog = new OpenFileDialog {Multiselect = true, CheckFileExists = true, CheckPathExists = true};
-            dialog.ShowDialog();
-
-            var paths = dialog.FileNames;
-            var confPaths = paths.Select(f => new FileProfile {LastSynced = DateTime.MinValue, Path = f}).ToList();
-
-            foreach (var path in paths)
+            if (_vm.Config.Paths.Count < 1)
             {
-                Trace.WriteLine(path);
+                MessageBox.Show("Please enter a path.","Error",MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
             }
 
-            var config = new Config {
-                CheckInterval = TimeSpan.FromMinutes(.5),
-                Paths = confPaths,
-                SavePath = "C:\\Users\\Andyblarblar\\Downloads\\Backup"
-            };
+            //Ask the user if they really want to send the new config
+            var confirm = MessageBox.Show(this, "This will overwrite your old settings, are you sure?", "Confirmation", MessageBoxButton.OKCancel, MessageBoxImage.Question);
 
-            await _client.WriteAsync(config);
+            if(confirm == MessageBoxResult.Cancel) return;
+
+            //Parse the time input
+            _vm.Config.CheckInterval = TimeSpan.Parse(BackupIntervalInput.Text);
+
+            await _client.Start();
+
+            await _client.WriteAsync(_vm.Config);
+
+            MessageBox.Show("Successfully set config");
+        }
+
+        /// <summary>
+        /// Pressing del while selecting paths deletes the paths from the config.
+        /// </summary>
+        private void CommandBinding_DeleteSelectedPath(object sender, ExecutedRoutedEventArgs e)
+        {
+            if(PathListView.SelectedItems.Count < 1) return;
+
+            var selItems = PathListView.SelectedItems;
+
+            foreach (var item in selItems)
+            {
+                _vm.Config.Paths.Remove((FileProfile) item);
+            }
+
+            RefreshListBinding();
+        }
+
+        private void RefreshListBinding()
+        {
+            PathListView.ItemsSource = _vm.Config.Paths;
+            PathListView.Items.Refresh();
+        }
+
+        private void BackupDirBtn_OnClick(object sender, RoutedEventArgs e)
+        {
+            var dialog = new VistaFolderBrowserDialog();
+            var res = dialog.ShowDialog(this);
+            if (res ?? false)
+            {
+                _vm.Config.SavePath = dialog.SelectedPath;
+            }
+        }
+
+        private void AddFolderBtn_OnClick(object sender, RoutedEventArgs e)
+        {
+            var dialog = new VistaFolderBrowserDialog();
+            var res = dialog.ShowDialog(this);
+            if (res ?? false)
+            {
+                _vm.Config.Paths.Add(new FileProfile{Path = dialog.SelectedPath, LastSynced = DateTime.MinValue});
+            }
+
+            RefreshListBinding();
         }
 
     }

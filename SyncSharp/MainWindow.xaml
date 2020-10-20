@@ -6,19 +6,33 @@
         xmlns:local="clr-namespace:SyncSharp"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
+
     <Grid>
-        <ListView HorizontalAlignment="Center" VerticalAlignment="Center" Height="328" Width="695">
+        <ListView x:Name="PathListView" HorizontalAlignment="Center" VerticalAlignment="Top" Height="328" Width="696" Margin="0,31,0,0">
+
+            <ListView.InputBindings>
+                <KeyBinding 
+                            Key="Delete"
+                            Command="Delete"/>
+            </ListView.InputBindings>
+            <ListView.CommandBindings>
+                <CommandBinding Command="Delete" Executed="CommandBinding_DeleteSelectedPath"/>
+            </ListView.CommandBindings>
+
             <ListView.View>
                 <GridView>
-                    <GridViewColumn Header="File Path"/>
-                    <GridViewColumn Header="Last Backed up"/>
+                    <GridViewColumn Header="File Path" DisplayMemberBinding="{Binding Path=Path}"/>
+                    <GridViewColumn Header="Last Backed up" DisplayMemberBinding="{Binding Path=LastSynced}"/>
                 </GridView>
             </ListView.View>
 
         </ListView>
-        <TextBox x:Name="BackupIntervalInput" Margin="0,386,567,0" Text="TextBox" TextWrapping="Wrap" VerticalAlignment="Top" Height="20" HorizontalAlignment="Right" Width="120"/>
-        <Button x:Name="SendConfigBtn" Content="Send Config" Margin="0,386,488,0" HorizontalAlignment="Right" Width="74" Height="20" VerticalAlignment="Top" Click="ButtonClickSendConfig"/>
-        <Button x:Name="AddNewFilesBtn" Content="Add Paths" HorizontalAlignment="Left" Margin="50,386,0,0" VerticalAlignment="Top" Click="Disconnect"/>
+        <TextBox x:Name="BackupIntervalInput" Margin="259,368,0,0" Text="TextBox" TextWrapping="Wrap" VerticalAlignment="Top" Height="20" HorizontalAlignment="Left" Width="120"/>
+        <Button x:Name="SendConfigBtn" Content="Set Config" Margin="0,366,52,0" HorizontalAlignment="Right" Width="74" Height="20" VerticalAlignment="Top" Click="ButtonClickSendConfig"/>
+        <Button x:Name="AddNewFilesBtn" Content="Add Files" HorizontalAlignment="Left" Margin="52,366,0,0" VerticalAlignment="Top" Click="ButtonClickAddPaths"/>
+        <Button x:Name="AddFolderBtn" Content="Add Folders" HorizontalAlignment="Left" Margin="109,366,0,0" VerticalAlignment="Top" Click="AddFolderBtn_OnClick"/>
+        <TextBlock HorizontalAlignment="Left" Margin="182,368,0,0" Text="Sync Interval-" TextWrapping="Wrap" VerticalAlignment="Top"/>
+        <Button x:Name="BackupDirBtn"  Content="Set Backup Directory" HorizontalAlignment="Left" Margin="384,368,0,0" VerticalAlignment="Top" Click="BackupDirBtn_OnClick"/>
 
     </Grid>
 
