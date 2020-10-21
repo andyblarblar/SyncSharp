@@ -1,14 +1,15 @@
-﻿<Window x:Class="SyncSharp.MainWindow"
+﻿<Window x:Name="window" x:Class="SyncSharp.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SyncSharp"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="450" Width="800" ResizeMode="CanMinimize">
 
-    <Grid>
-        <ListView x:Name="PathListView" HorizontalAlignment="Center" VerticalAlignment="Top" Height="328" Width="696" Margin="0,31,0,0">
+    <Grid x:Name="MainGrid" Width="{Binding ActualWidth, ElementName=window, Mode=OneWay}" Height="{Binding ActualHeight, ElementName=window, Mode=OneWay}" >
+        
+        <ListView x:Name="PathListView" Margin="50,35,0,0" Height="300" VerticalAlignment="Top" HorizontalAlignment="Left" Width="700">
 
             <ListView.InputBindings>
                 <KeyBinding 
@@ -28,7 +29,7 @@
 
         </ListView>
         <TextBox x:Name="BackupIntervalInput" Margin="259,368,0,0" Text="TextBox" TextWrapping="Wrap" VerticalAlignment="Top" Height="20" HorizontalAlignment="Left" Width="120"/>
-        <Button x:Name="SendConfigBtn" Content="Set Config" Margin="0,366,52,0" HorizontalAlignment="Right" Width="74" Height="20" VerticalAlignment="Top" Click="ButtonClickSendConfig"/>
+        <Button x:Name="SendConfigBtn" Content="Set Config" Margin="680,368,0,0" Click="ButtonClickSendConfig" Width="70" Height="20" HorizontalAlignment="Left" VerticalAlignment="Top"/>
         <Button x:Name="AddNewFilesBtn" Content="Add Files" HorizontalAlignment="Left" Margin="52,366,0,0" VerticalAlignment="Top" Click="ButtonClickAddPaths"/>
         <Button x:Name="AddFolderBtn" Content="Add Folders" HorizontalAlignment="Left" Margin="109,366,0,0" VerticalAlignment="Top" Click="AddFolderBtn_OnClick"/>
         <TextBlock HorizontalAlignment="Left" Margin="182,368,0,0" Text="Sync Interval-" TextWrapping="Wrap" VerticalAlignment="Top"/>
