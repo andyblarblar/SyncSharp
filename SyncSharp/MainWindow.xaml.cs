@@ -54,7 +54,7 @@ namespace SyncSharp
 
         private async void Disconnect(object sender, RoutedEventArgs e)
         {
-            if(!_client.IsConnected) return;
+            if(!_client.IsConnected) return;//TODO doesnt actually work lmao
             await _client.Disconnect();
         }
 
@@ -77,6 +77,11 @@ namespace SyncSharp
             if (_vm.Config.Paths.Count < 1)
             {
                 MessageBox.Show("Please enter a path.","Error",MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+            if (string.IsNullOrEmpty(_vm.Config.SavePath))
+            {
+                MessageBox.Show("Please enter a backup directory.","Error",MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 

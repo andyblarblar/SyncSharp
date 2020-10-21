@@ -22,18 +22,19 @@ namespace SyncSharp.Common
         /// </summary>
         public static async Task Sync(Config config, CancellationToken token, ILogger logger)
         {
+            //This prevents saving of the file if application has never been used.
+            if (config?.Paths is null || config.Paths.Count == 0 || config?.SavePath is null)
+            { 
+                return;
+            }
+
             if (!Directory.Exists(config.SavePath))
             {
                 Directory.CreateDirectory(config.SavePath);
                 logger.LogDebug($"created directory {config.SavePath}");
             }
 
-            //This prevents saving of the file if application has never been used.
-            if (config?.Paths is null)
-            {
-                return;
-            }
-
+            
             foreach (var path in config.Paths)
             {
                 var pathIsDirAndExists = Directory.Exists(path.Path);
@@ -45,14 +46,16 @@ namespace SyncSharp.Common
                     {
                         var dict = CrawlDirectory(path);
 
+                        //Iterate through all accumulated sub directories
                         foreach (var dir in dict.Keys)
                         {
-
+                            //Create subdir in backup folder to conserve file structure
                             if (!Directory.Exists(Path.Combine(config.SavePath, dir)))
                             {
                                 Directory.CreateDirectory(Path.Combine(config.SavePath, dir));
                             }
 
+                            //Iterate through all files in this directory
                             foreach (var file in dict[dir])
                             {
                                 await SyncFile(config, token,
@@ -66,7 +69,7 @@ namespace SyncSharp.Common
                     else if (pathIsFileAndExists)
                     {
                         //Place file under its directory in the backup folder
-                        var saveDir = Path.Combine(config.SavePath, new string(Path.GetDirectoryName(path.Path).Reverse().TakeWhile(c => c != Path.DirectorySeparatorChar).Reverse().ToArray()));
+                        var saveDir = Path.Combine(config.SavePath, Directory.GetParent(path.Path).FullName);
                         if (!Directory.Exists(saveDir)) Directory.CreateDirectory(saveDir);
 
                         await SyncFile(config, token, path, logger, saveDir);
@@ -116,7 +119,7 @@ namespace SyncSharp.Common
         }
 
         /// <summary>
-        /// Crawls the passed directory, accumulating the paths of all files in subdirectories.
+        /// Crawls the passed directory, accumulating the paths of all files in subdirectories
         /// and the initial directory.
         /// </summary>
         /// <returns>A dictionary of directory:files[] where files are the files in that directory</returns>
@@ -128,22 +131,15 @@ namespace SyncSharp.Common
             {
                 foreach (var dir in subDirs)
                 {
-                    //Preserve path for root dir
-                    if (dir == initialPath)
-                    {
-                        acc.Add(new string(dir.Reverse().TakeWhile(c => c != Path.DirectorySeparatorChar).Reverse().ToArray()), Directory.GetFiles(dir));
-                    }
-                    else
-                    {
-                         acc.Add(Path.GetRelativePath(initialPath,dir),Directory.GetFiles(dir));
-                    }
-                    
+
+                    acc.Add(Path.GetRelativePath(initialPath,dir),Directory.GetFiles(dir));
+
                     var newSubDir = Directory.GetDirectories(dir);
                     if(newSubDir.Length > 0) Traverse(newSubDir, acc, initialPath);
                 }
             }
 
-            Traverse(new List<string>{path.Path}, resultDict, path.Path);
+            Traverse(new List<string>{path.Path}, resultDict, Directory.GetParent(path.Path).FullName);
 
             return resultDict;
         }
@@ -170,11 +166,11 @@ namespace SyncSharp.Common
             }
             catch (Exception)//File doesn't exist
             {
-                //Default TODO change before release
+                //Default
                 return new Config{
-                    CheckInterval = TimeSpan.FromMinutes(.5),
-                    Paths = new List<FileProfile> { new FileProfile { LastSynced = DateTime.MinValue, Path = "Y:\\Documents\\School" } },
-                    SavePath = "C:\\Users\\Andyblarblar\\Downloads\\Backu"
+                    CheckInterval = TimeSpan.FromMinutes(60),
+                    Paths = new List<FileProfile>(),
+                    SavePath = null
                 };
             }
         }
