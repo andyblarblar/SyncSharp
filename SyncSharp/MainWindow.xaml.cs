@@ -31,7 +31,7 @@ namespace SyncSharp
     /// </summary>
     public partial class MainWindow : Window
     {
-        public MainWindow()//TODO make gui look nice, then finalise to make it really work
+        public MainWindow()
         {
             InitializeComponent();
             _client = new PipeClient("syncsharp");

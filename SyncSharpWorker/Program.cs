@@ -29,6 +29,7 @@ namespace SyncSharpWorker
                     {
                         conf.AddConsole().SetMinimumLevel(LogLevel.Debug);
                     });
-                });
+                })
+                .UseWindowsService();
     }
 }

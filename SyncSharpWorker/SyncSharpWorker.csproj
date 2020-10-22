@@ -8,10 +8,20 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.0-rc.1.20451.14" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="3.1.9" />
     <PackageReference Include="protobuf-net" Version="3.0.29" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\SyncSharp.Common\SyncSharp.Common.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="installScripts\installService.ps1">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="installScripts\uninstallService.ps1">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>
