@@ -28,6 +28,7 @@ namespace SyncSharpWorker
                     services.AddLogging(conf =>
                     {
                         conf.AddConsole().SetMinimumLevel(LogLevel.Debug);
+                        conf.AddEventLog();
                     });
                 })
                 .UseWindowsService();

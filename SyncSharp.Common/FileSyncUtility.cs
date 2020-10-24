@@ -94,21 +94,31 @@ namespace SyncSharp.Common
             if (fileInfo.LastWriteTime > path.LastSynced)
             {
                 logger.LogDebug($"Syncing {path.Path}");
-                await using var sourceStream = File.OpenRead(path.Path);
-                await using var destinationStream = File.Create(Path.Combine(configSavePath, fileInfo.Name));
 
                 try
                 {
-                    await sourceStream.CopyToAsync(destinationStream, 81920, token);
-                    token.ThrowIfCancellationRequested();
+                    await using var sourceStream = File.OpenRead(path.Path);
+                    await using var destinationStream = File.Create(Path.Combine(configSavePath, fileInfo.Name));
+
+                    //nested try catch is needed for scoping
+                    try
+                    {
+                        await sourceStream.CopyToAsync(destinationStream, 81920, token);
+                        token.ThrowIfCancellationRequested();
+                    }
+                    catch (OperationCanceledException)//Delete file if cancelled
+                    {
+                        logger.LogDebug($"deleteing file {Path.Combine(configSavePath, fileInfo.Name)}");
+                        await destinationStream.DisposeAsync();//free up file handles
+                        await sourceStream.DisposeAsync();
+                        File.Delete(Path.Combine(configSavePath, fileInfo.Name));
+                        throw;
+                    }
+
                 }
-                catch (OperationCanceledException)//Delete file if cancelled
+                catch (IOException e)//file cant be opened
                 {
-                    logger.LogDebug($"deleteing file {Path.Combine(configSavePath, fileInfo.Name)}");
-                    await destinationStream.DisposeAsync();//free up file handles
-                    await sourceStream.DisposeAsync();
-                    File.Delete(Path.Combine(configSavePath, fileInfo.Name));
-                    throw;
+                    logger.LogCritical(e.StackTrace);
                 }
 
             }
