@@ -91,7 +91,7 @@ namespace SyncSharp.Common
             var fileInfo = new FileInfo(path.Path);
 
             //needs to be synced
-            if (fileInfo.LastWriteTime - path.LastSynced > config.CheckInterval)//TODO this timing is off
+            if (fileInfo.LastWriteTime > path.LastSynced)
             {
                 logger.LogDebug($"Syncing {path.Path}");
                 await using var sourceStream = File.OpenRead(path.Path);
