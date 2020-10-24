@@ -60,7 +60,10 @@ namespace SyncSharp
 
         private void ButtonClickAddPaths(object sender, RoutedEventArgs e)
         {
-            var dialog = new OpenFileDialog { Multiselect = true, CheckFileExists = true, CheckPathExists = true };
+            //var dialog = new OpenFileDialog { Multiselect = true, CheckFileExists = true, CheckPathExists = true };
+
+            var dialog = new VistaOpenFileDialog { Multiselect = true, CheckFileExists = true, CheckPathExists = true };
+            
             dialog.ShowDialog();
 
             var paths = dialog.FileNames;

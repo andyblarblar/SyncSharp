@@ -69,7 +69,7 @@ namespace SyncSharp.Common
                     else if (pathIsFileAndExists)
                     {
                         //Place file under its directory in the backup folder
-                        var saveDir = Path.Combine(config.SavePath, Directory.GetParent(path.Path).FullName);
+                        var saveDir = Path.Combine(config.SavePath, Directory.GetParent(path.Path).Name);
                         if (!Directory.Exists(saveDir)) Directory.CreateDirectory(saveDir);
 
                         await SyncFile(config, token, path, logger, saveDir);
@@ -118,7 +118,8 @@ namespace SyncSharp.Common
                 }
                 catch (IOException e)//file cant be opened
                 {
-                    logger.LogCritical(e.StackTrace);
+                    logger.LogCritical($"Failed to open file {fileInfo}");
+                    logger.LogDebug(e.Message);
                 }
 
             }
